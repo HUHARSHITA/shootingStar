@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chaos Orbit</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; cursor: crosshair; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let planets = [];
+const G = 1.2; // Stronger gravity for more speed
+
+window.onresize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+};
+window.onresize();
+
+class Planet {
+    constructor(x, y, vx, vy) {
+        this.x = x; this.y = y;
+        this.vx = vx; this.vy = vy;
+        this.radius = 4 + Math.random() * 8;
+        this.mass = this.radius * 15;
+        this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Bounce off walls to keep the party going
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -0.9;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -0.9;
+    }
+}
+
+let startX, startY, isDrawing = false;
+
+canvas.onmousedown = (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+    isDrawing = true;
+};
+
+canvas.onmouseup = (e) => {
+    let vx = (startX - e.clientX) * 0.15;
+    let vy = (startY - e.clientY) * 0.15;
+    planets.push(new Planet(startX, startY, vx, vy));
+    isDrawing = false;
+};
+
+function loop() {
+    // This creates the "Neon Trail" effect
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < planets.length; i++) {
+        for (let j = i + 1; j < planets.length; j++) {
+            let p1 = planets[i];
+            let p2 = planets[j];
+            let dx = p2.x - p1.x;
+            let dy = p2.y - p1.y;
+            let distSq = dx * dx + dy * dy;
+            let dist = Math.sqrt(distSq);
+
+            if (dist < 20) continue; 
+
+            let force = (G * p1.mass * p2.mass) / distSq;
+            let ax = (force * dx / dist) / p1.mass;
+            let ay = (force * dy / dist) / p1.mass;
+
+            p1.vx += ax; p1.vy += ay;
+            p2.vx -= (force * dx / dist) / p2.mass;
+            p2.vy -= (force * dy / dist) / p2.mass;
+        }
+        planets[i].update();
+        planets[i].draw();
+    }
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
